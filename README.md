@@ -138,6 +138,10 @@ minikube start
 
 ### 2. Set up notebook and training
 
+- Command for forward port
+  - for kubeflow ui:    ```kubectl port-forward svc/istio-ingressgateway -n istio-system 8080:80```
+  - for MinIO ui:       ```kubectl port-forward -n kubeflow svc/minio-service 9000:9000```
+
 - command for permission
 ```bash
 kubectl apply -f kubernetes/kubeflow/access_kfp_from_jupyter_notebook.yaml
