@@ -1,0 +1,19 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: "InferenceService"
+metadata:
+  name: digits-recognizer
+  namespace: kubeflow-user-example-com
+  annotations:
+    sidecar.istio.io/inject: "false"
+spec:
+  predictor:
+    serviceAccountName: sa-minio-kserve
+    tensorflow:
+      storageUri: s3://mlpipeline/models/detect-digits/
+      resources:
+        requests:
+          memory: "256Mi"  # Set the minimum amount of memory required by the predictor
+          cpu: "100m"      # Set the minimum amount of CPU required by the predictor
+        limits:
+          memory: "512Mi"  # Set the maximum amount of memory allowed for the predictor
+          cpu: "500m"      # Set the maximum amount of CPU allowed for the predictor

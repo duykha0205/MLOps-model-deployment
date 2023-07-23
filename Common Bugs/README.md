@@ -27,4 +27,9 @@ kubectl version --short
 
 -> Solutions: delele old microk8s and reinstall with same version
 
-### 2. :))))))
+### 2. Faill to build or error (when kubectl apply)
+
+- Remove old cluster and set up more resource
+
+
+### 2. Faill to build or error (when kubectl apply)

@@ -17,53 +17,152 @@ In this project, you will be setting up a Kubeflow cluster and integrating it wi
 6. Use Kubeflow to create an experiment and track the performance of the deployed model
 
 ## =====GUIDE LINE ==========
+### My self and youtube
+![](images/app-overview.jpg)
+
 #### 1. Install and configure Kubeflow on a Kubernetes cluster
 
 - Start cluster with minikube (or microk8s)
 - In mycase I use minikube
 
 - link for implement kubeflow: https://dagshub.com/blog/how-to-install-kubeflow-locally/ 
-- component after installed (do not kubectl apply all component in manifests )
+- link to manifest repo: https://github.com/kubeflow/manifests 
+- Pods take 30m to run in my case (cpus=12, mem=7GB)
 
 ```bash
 kubectl get pods -A
-```
+
+while ! kustomize build example | awk '!/well-defined/' | kubectl apply -f -; do echo "Retrying to apply resources"; sleep 10; done
 
 ```
-NAMESPACE      NAME                                                     READY   STATUS     RESTARTS         AGE
-auth           dex-7ff46847-dw45k                                       1/1     Running    0                71m
-cert-manager   cert-manager-7fb78674d7-2pvz4                            1/1     Running    0                89m
-cert-manager   cert-manager-cainjector-5dfc946d84-dkrqh                 1/1     Running    0                89m
-cert-manager   cert-manager-webhook-8744b7588-kwg24                     1/1     Running    0                89m
-istio-system   authservice-0                                            1/1     Running    0                80m
-istio-system   istio-ingressgateway-c7fdd4bf6-b8hpn                     1/1     Running    0                89m
-istio-system   istiod-6995577d4-9h9nh                                   1/1     Running    0                89m
-kube-system    coredns-787d4945fb-wvgbw                                 1/1     Running    22 (110m ago)    83d
-kube-system    etcd-minikube                                            1/1     Running    17 (110m ago)    83d
-kube-system    kube-apiserver-minikube                                  1/1     Running    20 (110m ago)    83d
-kube-system    kube-controller-manager-minikube                         1/1     Running    18 (110m ago)    83d
-kube-system    kube-proxy-rdk28                                         1/1     Running    17 (110m ago)    83d
-kube-system    kube-scheduler-minikube                                  1/1     Running    17 (110m ago)    83d
-kube-system    storage-provisioner                                      1/1     Running    51 (9m52s ago)   83d
-kubeflow       cache-server-6b44c46d47-th2s5                            0/2     Init:0/1   0                89m
-kubeflow       centraldashboard-f966d7897-zrxjw                         2/2     Running    1 (36m ago)      58m
-kubeflow       kubeflow-pipelines-profile-controller-6f6bc888df-2qp9s   1/1     Running    0                89m
-kubeflow       metacontroller-0                                         1/1     Running    0                89m
-kubeflow       metadata-envoy-deployment-7b49bdb748-p8ch2               1/1     Running    0                89m
-kubeflow       metadata-grpc-deployment-6d744c66bb-pvx6r                2/2     Running    3 (88m ago)      89m
-kubeflow       metadata-writer-5bfdbf79b7-5n8sc                         2/2     Running    1 (84m ago)      89m
-kubeflow       minio-549846c488-5gjz8                                   2/2     Running    0                89m
-kubeflow       ml-pipeline-86d69497fc-l25qz                             2/2     Running    10 (9m7s ago)    88m
-kubeflow       ml-pipeline-persistenceagent-5789446f9c-6c5cl            2/2     Running    0                88m
-kubeflow       ml-pipeline-scheduledworkflow-fb9fbd76b-wc6hm            2/2     Running    0                88m
-kubeflow       ml-pipeline-ui-74fcbdddd9-ct7fz                          2/2     Running    15 (9m1s ago)    88m
-kubeflow       ml-pipeline-viewer-crd-bdf696cb9-gxsrf                   2/2     Running    1 (88m ago)      88m
-kubeflow       ml-pipeline-visualizationserver-845d745b46-76pdx         2/2     Running    13 (9m11s ago)   88m
-kubeflow       mysql-5f968d4688-c8krz                                   2/2     Running    0                88m
-kubeflow       profiles-deployment-7bc6469cdd-65lvr                     3/3     Running    9 (12m ago)      79m
-kubeflow       tensorboards-web-app-deployment-7d4f745c6d-nzqn4         2/2     Running    0                61m
-kubeflow       volumes-web-app-deployment-5f794d44cf-9945d              2/2     Running    0                67m
-kubeflow       workflow-controller-56cc57796-mbzvk                      2/2     Running    12 (9m58s ago)   88m
+- Incluster
+  - remove: kubectl -n kube-system delete deployment,pod,svc --all --force
+  - restart: kubectl rollout restart deploy -n <namespace-name>
+
+- if your Pods can not run all (delete old cluster and create a new one)
+```bash
+minikube stop
+minikube delete
+minikube delete
+```  
+
+  
+```
+NAMESPACE                   NAME                                                              READY   STATUS      RESTARTS        AGE
+auth                        dex-7ff46847-47jqg                                                1/1     Running     0               3h12m
+cert-manager                cert-manager-7fb78674d7-tslkx                                     1/1     Running     0               3h12m
+cert-manager                cert-manager-cainjector-5dfc946d84-8jzld                          1/1     Running     0               3h12m
+cert-manager                cert-manager-webhook-8744b7588-pcm97                              1/1     Running     0               3h12m
+istio-system                authservice-0                                                     1/1     Running     0               3h12m
+istio-system                cluster-local-gateway-675bb7b74-d9kw2                             1/1     Running     0               3h12m
+istio-system                istio-ingressgateway-c7fdd4bf6-72dc5                              1/1     Running     0               3h12m
+istio-system                istiod-6995577d4-j7xjq                                            1/1     Running     0               3h12m
+knative-eventing            eventing-controller-86647cbc5b-stdqp                              1/1     Running     0               3h12m
+knative-eventing            eventing-webhook-6f48bb5f4c-n4jt2                                 1/1     Running     0               3h12m
+knative-serving             activator-855b695596-5p8xv                                        2/2     Running     0               3h10m
+knative-serving             autoscaler-7cbddfc9f7-dkvls                                       2/2     Running     0               3h10m
+knative-serving             controller-6657c556fd-fxzzc                                       2/2     Running     0               3h10m
+knative-serving             domain-mapping-544987775c-t5ldt                                   2/2     Running     0               3h10m
+knative-serving             domainmapping-webhook-6b48bdc856-mt7p5                            2/2     Running     0               3h10m
+knative-serving             net-istio-controller-6fbdbd9959-qn6nl                             2/2     Running     0               3h10m
+knative-serving             net-istio-webhook-7d4879cd7f-7hbng                                2/2     Running     0               3h10m
+knative-serving             webhook-665c977469-kz7nf                                          2/2     Running     0               3h10m
+kube-system                 coredns-787d4945fb-qtw29                                          1/1     Running     0               3h13m
+kube-system                 etcd-minikube                                                     1/1     Running     0               3h13m
+kube-system                 kube-apiserver-minikube                                           1/1     Running     0               3h13m
+kube-system                 kube-controller-manager-minikube                                  1/1     Running     0               3h13m
+kube-system                 kube-proxy-t59n4                                                  1/1     Running     0               3h13m
+kube-system                 kube-scheduler-minikube                                           1/1     Running     0               3h13m
+kube-system                 storage-provisioner                                               1/1     Running     1 (3h12m ago)   3h13m
+kubeflow-user-example-com   digits-recognizer-pipeline-7nvqk-1599600504                       0/2     Completed   0               76m
+kubeflow-user-example-com   digits-recognizer-pipeline-7nvqk-1808267719                       0/2     Completed   0               77m
+kubeflow-user-example-com   digits-recognizer-pipeline-7nvqk-1849466815                       0/2     Completed   0               75m
+kubeflow-user-example-com   digits-recognizer-pipeline-7nvqk-1861154525                       0/2     Completed   0               76m
+kubeflow-user-example-com   digits-recognizer-pipeline-7nvqk-566761592                        0/1     Completed   0               77m
+kubeflow-user-example-com   digits-recognizer-pipeline-g8vmd-900720095                        0/1     Completed   0               95m
+kubeflow-user-example-com   digits-recognizer-pipeline-l96pw-1405454503                       0/1     Completed   0               90m
+kubeflow-user-example-com   digits-recognizer-pipeline-q2gb2-3897804321                       0/1     Completed   0               106m
+kubeflow-user-example-com   digits-recognizer-pipeline-sgrbm-2795008036                       0/2     Completed   0               130m
+kubeflow-user-example-com   digits-recognizer-predictor-default-00001-deployment-6cd9572xhx   2/2     Running     0               58m
+kubeflow-user-example-com   kha-test-0                                                        2/2     Running     0               92m
+kubeflow-user-example-com   ml-pipeline-ui-artifact-fb8c99584-zcgjb                           2/2     Running     0               168m
+kubeflow-user-example-com   ml-pipeline-visualizationserver-6659778c46-87fpn                  2/2     Running     0               168m
+kubeflow                    admission-webhook-deployment-6d48f6f745-qsh2p                     1/1     Running     0               3h10m
+kubeflow                    cache-server-6b44c46d47-vls5j                                     2/2     Running     0               3h10m
+kubeflow                    centraldashboard-f966d7897-z95xg                                  2/2     Running     0               3h10m
+kubeflow                    jupyter-web-app-deployment-7685ddb979-75h6j                       2/2     Running     0               3h10m
+kubeflow                    katib-controller-746969dc99-mnbtt                                 1/1     Running     0               3h10m
+kubeflow                    katib-db-manager-5ddbffd67-ld9lj                                  1/1     Running     0               3h10m
+kubeflow                    katib-mysql-66c8cdff4f-w77p2                                      1/1     Running     0               3h10m
+kubeflow                    katib-ui-58b54d465f-jsrtp                                         2/2     Running     1 (3h3m ago)    3h11m
+kubeflow                    kserve-controller-manager-96b896c66-vzxw7                         2/2     Running     0               3h11m
+kubeflow                    kserve-models-web-app-9fbcd79f5-rjn2j                             2/2     Running     0               3h11m
+kubeflow                    kubeflow-pipelines-profile-controller-6f6bc888df-4544s            1/1     Running     0               3h11m
+kubeflow                    metacontroller-0                                                  1/1     Running     0               3h10m
+kubeflow                    metadata-envoy-deployment-7b49bdb748-nzl7t                        1/1     Running     0               3h11m
+kubeflow                    metadata-grpc-deployment-6d744c66bb-7hkls                         2/2     Running     8 (172m ago)    3h11m
+kubeflow                    metadata-writer-5bfdbf79b7-dw8bj                                  2/2     Running     6 (168m ago)    3h11m
+kubeflow                    minio-549846c488-426kv                                            2/2     Running     0               3h11m
+kubeflow                    ml-pipeline-86d69497fc-q8v96                                      2/2     Running     7 (169m ago)    3h11m
+kubeflow                    ml-pipeline-persistenceagent-5789446f9c-schzk                     2/2     Running     0               3h11m
+kubeflow                    ml-pipeline-scheduledworkflow-fb9fbd76b-9xf79                     2/2     Running     0               3h11m
+kubeflow                    ml-pipeline-ui-74fcbdddd9-mgjzt                                   2/2     Running     0               3h11m
+kubeflow                    ml-pipeline-viewer-crd-bdf696cb9-jshqz                            2/2     Running     1 (172m ago)    3h11m
+kubeflow                    ml-pipeline-visualizationserver-845d745b46-7dgc5                  2/2     Running     0               3h11m
+kubeflow                    mysql-5f968d4688-lxq5p                                            2/2     Running     0               3h11m
+kubeflow                    notebook-controller-deployment-576df594fd-q9hnx                   2/2     Running     1 (172m ago)    3h11m
+kubeflow                    profiles-deployment-7bc6469cdd-g2pwm                              3/3     Running     1 (168m ago)    3h11m
+kubeflow                    tensorboard-controller-deployment-84954cb455-5cxl6                3/3     Running     1 (172m ago)    3h11m
+kubeflow                    tensorboards-web-app-deployment-7d4f745c6d-rkpf6                  2/2     Running     0               3h11m
+kubeflow                    training-operator-7c5456c65-vfr5c                                 1/1     Running     0               3h11m
+kubeflow                    volumes-web-app-deployment-5f794d44cf-xgdbl                       2/2     Running     0               3h11m
+kubeflow                    workflow-controller-56cc57796-zgk48                               2/2     Running     1 (170m ago)    3h11m
+minio-dev                   minio                                                             0/1     Pending     0               156m
 ```
 
-#### 2. Install and configure Kserve on the same cluster
+- set up minikube for docker: 
+```bash
+eval $(minikube docker-env)
+```
+
+- For set up resource for minikube( default not enough for kubeflow): minikube config view
+- command set up resource: 
+```bash
+minikube stop
+minikube config set memory 7192
+minikube config set cpus 12
+minikube config view
+minikube delete -f
+minikube start
+```
+
+### 2. Set up notebook and training
+
+- command for permission
+```bash
+kubectl apply -f kubernetes/kubeflow/access_kfp_from_jupyter_notebook.yaml
+
+- Set up minio for storage
+kubectl apply -f kubernetes/minio/minio-dev.yaml
+# accesskey: minio
+# secretkey: minio123
+# bucket: mlpipeline
+
+```
+
+### 3. Install and configure Kserve on the same cluster
+- set up kserve with minio to store model
+```bash
+kubectl apply -f kubernetes/kserve/set-minio-kserve-secret.yaml
+```
+- Test training and store model to s3 minio
+
+### 4. Notebook for train and serve and test
+
+- Set up notebook with many cpus or mem will lead to error, Serving same case
+- check ```./kubernetes/kserve/model_kserce_inference.yaml for serving```
+
+# ========REFERENCE==========
+1. https://github.com/flopach/digits-recognizer-kubeflow (https://www.youtube.com/watch?v=6wWdNg0GMV4&ab_channel=TechnologywithFlo )
+2. 
+3. 
